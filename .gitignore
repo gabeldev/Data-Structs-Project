@@ -1,0 +1,110 @@
+# --- Arquivos compilados e objetos ---
+*.o
+*.a
+*.so
+*.ko
+*.obj
+*.exe
+*.out
+*.ilk
+*.pdb
+
+# --- Executável do projeto (substitua 'myprogram' pelo nome do seu executável) ---
+/myprogram
+/myprogram.exe
+
+# --- Diretórios de build ---
+/build/
+/bin/
+/obj/
+/debug/
+/release/
+
+# --- Arquivos de IDEs e editores ---
+# Visual Studio
+.vs/
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+
+# CLion
+.idea/
+cmake-build-*/
+
+# Eclipse
+.project
+.cproject
+.settings/
+
+# Xcode
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+
+# VS Code
+.vscode/
+
+# Editor temporários/backups
+*~
+*.swp
+*.swo
+
+# --- Dependências externas (ex: bibliotecas baixadas) ---
+/deps/
+/libs/
+
+# --- Autotools e Makefiles ---
+autom4te.cache
+Makefile.in
+/aclocal.m4
+/compile
+/config.guess
+/config.sub
+/configure
+/depcomp
+/install-sh
+/libtool
+/ltmain.sh
+/missing
+/stamp-h1
+
+# --- CMake ---
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+
+# --- Logs e saídas ---
+*.log
+*.tmp
+
+# --- Arquivos de ambiente ---
+.env
+.env.local
+
+# --- Documentação gerada ---
+/docs/html/
+/docs/latex/
+/doxygen/
+
+# --- Pacotes ---
+*.tar.gz
+*.zip
+
+# --- Arquivos gerados pelo sistema operacional ---
+.DS_Store
+Thumbs.db
+
+# --- Cabeçalhos pré-compilados (GCC) ---
+*.gch
+
+# --- Coverage (testes) ---
+*.gcno
+*.gcda
+/lcov.info
+
+# --- Tags (ctags, cscope) ---
+tags
+cscope.out
