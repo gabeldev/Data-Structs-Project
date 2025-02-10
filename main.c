@@ -49,12 +49,15 @@ bool isBigger(const char *__s1, const char *__s2) {
     return strcasecmp(__s1, __s2) < 0;
 }
 
+bool isSmaller(const char *__s1, const char *__s2) {
+    return strcasecmp(__s1, __s2) > 0;
+}
+
 char *strdup(const char *s) {
     char *d = malloc(strlen(s) + 1);
     if (d != NULL) strcpy(d, s);
     return d;
 }
-
 
 int retornaIdade(const int dia, const int mes, const int ano) {
     time_t timeNow = time(NULL);
@@ -227,6 +230,25 @@ void buscarElementoAVL(NODE **no, char *nome) {
     }
 }
 
+void alterarCadastroAVL(NODE **no, char *nome) {
+    if (estahVaziaAVL(no)) {
+        printf("\nPaciente não encontrado: %s\n\n", nome);
+        return;
+    }
+    if (!strcmp((*no)->info.nome, nome)) {
+        printf("\nAlterando cadastro para: %s\n", nome);
+        printf("Digite a nova data da última consulta (dd/mm/aaaa): ");
+        scanf("%d/%d/%d", &(*no)->info.ultimaConsulta.dia, &(*no)->info.ultimaConsulta.mes, &(*no)->info.ultimaConsulta.ano);
+        printf("\nCadastro atualizado com sucesso!\n");
+        return;
+    }
+    if (isBigger((*no)->info.nome, nome)) {
+        alterarCadastroAVL(&(*no)->esq, nome);
+    } else {
+        alterarCadastroAVL(&(*no)->dir, nome);
+    }
+}
+
 void destruirAVL(NODE **no) {
     if(estahVaziaAVL(no)) return;
 
@@ -244,13 +266,82 @@ void posOrdem(NODE** no){
 }
 
 // Operações de Lista Felipão
-
 void inicializaLista(LISTA_DUPLAMENTE *lista){
     lista->inicio = NULL;
     lista->tamanho = 0;
 }
 
-void loadProgram(const char *filename, NODE **raizAVL) {
+bool insereLista(LISTA_DUPLAMENTE *lista, OBJETO_LISTA cliente) {
+    OBJETO_LISTA *novo = (OBJETO_LISTA*) malloc(sizeof(OBJETO_LISTA));
+    if (!novo) return false;
+
+    strcpy(novo->nome, cliente.nome);
+    novo->sexo = cliente.sexo;
+    novo->nascimento = cliente.nascimento;
+    novo->ultimaConsulta = cliente.ultimaConsulta;
+    novo->prox = NULL;
+    novo->ant = NULL;
+
+    if (!lista->inicio) {
+        lista->inicio = novo;
+    } else {
+        OBJETO_LISTA *atual = lista->inicio;
+        while (atual->prox && !isSmaller(novo->nome, atual->nome)) {
+            atual = atual->prox;
+        }
+
+        if (isSmaller(novo->nome, atual->nome)) {  
+            novo->prox = atual->prox;
+            novo->ant = atual;
+            if (atual->prox) atual->prox->ant = novo;
+            atual->prox = novo;
+        } else {  
+            novo->prox = atual;
+            novo->ant = atual->ant;
+            if (atual->ant) atual->ant->prox = novo;
+            else lista->inicio = novo;
+            atual->ant = novo;
+        }
+    }
+    lista->tamanho++;
+    return true;
+}
+
+OBJETO_LISTA* buscaLista(LISTA_DUPLAMENTE *lista, char *nome) {
+    OBJETO_LISTA *atual = lista->inicio;
+    while (atual) {
+        if (strcmp(atual->nome, nome) == 0) {
+            return atual;
+        }
+        atual = atual->prox;
+    }
+    return NULL;
+}
+
+void alterarCadastroLista(LISTA_DUPLAMENTE *lista, char *nome) {
+    OBJETO_LISTA *atual = buscaLista(lista, nome);
+    if (atual) {
+        printf("\nAlterando cadastro para: %s\n", nome);
+        printf("Digite a nova data da última consulta (dd/mm/aaaa): ");
+        scanf("%d/%d/%d", &atual->ultimaConsulta.dia, &atual->ultimaConsulta.mes, &atual->ultimaConsulta.ano);
+        printf("\nCadastro atualizado com sucesso!\n");
+    } else {
+        printf("\nPaciente não encontrado.\n");
+    }
+}
+
+void destruirLista(LISTA_DUPLAMENTE *lista) {
+    OBJETO_LISTA *atual = lista->inicio;
+    while (atual) {
+        OBJETO_LISTA *prox = atual->prox;
+        free(atual);
+        atual = prox;
+    }
+    lista->inicio = NULL;
+    lista->tamanho = 0;
+}
+
+void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) {
     FILE *file = fopen(filename, "r");
     if (!file) {
         printf("Erro ao abrir o arquivo: %s\n", filename);
@@ -264,6 +355,7 @@ void loadProgram(const char *filename, NODE **raizAVL) {
         if(end) *end = '\0';
 
         OBJETO_AVL cliente;
+        OBJETO_LISTA clienteLista;
 
         char *token = strtok(start, ",");
         if(!token) continue;
@@ -282,25 +374,57 @@ void loadProgram(const char *filename, NODE **raizAVL) {
 
         if(valid) {
             insereAVL(raizAVL, cliente); // insere apenas mulheres
+        } else {
+            clienteLista = *(OBJETO_LISTA*)&cliente; // Copia os dados de OBJETO_AVL para OBJETO_LISTA
+            insereLista(lista, clienteLista);
         }
-
-        // else implementa a lista para homens
-
     }
     
     fclose(file);
 }
 
-void geraSaida(NODE **no) {
-    int a =0;
-    //implementar
+void escreveAVL(NODE *no, FILE *file) {
+    if (!no) return;
+    escreveAVL(no->esq, file);
+    fprintf(file, "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
+            no->info.nome, no->info.sexo,
+            no->info.nascimento.dia, no->info.nascimento.mes, no->info.nascimento.ano,
+            no->info.ultimaConsulta.dia, no->info.ultimaConsulta.mes, no->info.ultimaConsulta.ano);
+    escreveAVL(no->dir, file);
+}
+
+void escreveLista(LISTA_DUPLAMENTE *lista, FILE *file) {
+    OBJETO_LISTA *atual = lista->inicio;
+    while (atual) {
+        fprintf(file, "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
+                atual->nome, atual->sexo,
+                atual->nascimento.dia, atual->nascimento.mes, atual->nascimento.ano,
+                atual->ultimaConsulta.dia, atual->ultimaConsulta.mes, atual->ultimaConsulta.ano);
+        atual = atual->prox;
+    }
+}
+
+void geraSaida(NODE **no, LISTA_DUPLAMENTE *lista) {
+    FILE *fileLiz = fopen("saidaLiz.txt", "w");
+    FILE *fileMoises = fopen("saidaMoises.txt", "w");
+    if (!fileLiz || !fileMoises) {
+        perror("Erro ao criar arquivos de saída");
+        if (fileLiz) fclose(fileLiz);
+        if (fileMoises) fclose(fileMoises);
+        return;
+    }
+    escreveAVL(*no, fileLiz);
+    fclose(fileLiz);
+    escreveLista(lista, fileMoises);
+    fclose(fileMoises);
+    printf("Arquivos gerados com sucesso!\n");
 }
 
 void menuLiz(NODE **no) {
+
     int choice;
     char nome[50];
     OBJETO_AVL clienteNova;
-    char temp;
 
     do {
         printf("\n-----------------------------------------\n");
@@ -334,7 +458,7 @@ void menuLiz(NODE **no) {
 
 
                 printf("\nDigite a data de nascimento (dd/mm/aaaa): ");
-                scanf("%d/%d/%d", &clienteNova.nascimento.dia, &clienteNova.nascimento.mes, &clienteNova.nascimento.ano);
+                scanf(" %d/%d/%d", &clienteNova.nascimento.dia, &clienteNova.nascimento.mes, &clienteNova.nascimento.ano);
                 if(clienteNova.nascimento.dia > 31 || clienteNova.nascimento.dia < 1 ||
                     clienteNova.nascimento.mes > 12 || clienteNova.nascimento.mes < 1 ||
                     clienteNova.nascimento.ano > 2025 || clienteNova.nascimento.ano < 1900
@@ -345,7 +469,7 @@ void menuLiz(NODE **no) {
                 getchar();
 
                 printf("\nDigite a data da última consulta (dd/mm/aaaa): ");
-                scanf("%d/%d/%d", &clienteNova.ultimaConsulta.dia, &clienteNova.ultimaConsulta.mes, &clienteNova.ultimaConsulta.ano);
+                scanf(" %d/%d/%d", &clienteNova.ultimaConsulta.dia, &clienteNova.ultimaConsulta.mes, &clienteNova.ultimaConsulta.ano);
                 if(clienteNova.ultimaConsulta.dia > 31 || clienteNova.ultimaConsulta.dia < 1 ||
                     clienteNova.ultimaConsulta.mes > 12 || clienteNova.ultimaConsulta.mes < 1 ||
                     clienteNova.ultimaConsulta.ano > 2025 || clienteNova.ultimaConsulta.ano < 1970
@@ -358,7 +482,10 @@ void menuLiz(NODE **no) {
                 else printf("\nPaciente Cadastrada com Sucesso!\n");
                 break;  
             case 3:
-                // implementar
+                printf("\nDigite o nome completo da paciente para alteração: ");
+                fgets(nome, sizeof(nome), stdin);
+                nome[strcspn(nome, "\n")] = '\0';
+                alterarCadastroAVL(no, nome);
                 break;
 
             case 4:
@@ -372,8 +499,87 @@ void menuLiz(NODE **no) {
     } while (1); 
 }
 
-void MenuInicial(NODE **no) {
+void menuMoises(LISTA_DUPLAMENTE *lista) {
+
+    int choice;
+    char nome[50];
+    OBJETO_LISTA clienteNovo;
+
+    do {
+        printf("\n-----------------------------------------\n");
+        printf("Menu pacientes de Moisés:");
+        printf("\n-----------------------------------------\n");
+        printf("\n(1) Consultar paciente");
+        printf("\n(2) Cadastrar paciente");
+        printf("\n(3) Alterar cadastro de paciente");
+        printf("\n(4) Sair do Sistema");
+        printf("\n\nEscolha: ");
+
+        scanf("%d", &choice);
+        getchar();
+
+        switch (choice) {
+            case 1:
+                printf("\nDigite o nome completo do paciente: ");
+                fgets(nome, sizeof(nome), stdin);
+                nome[strcspn(nome, "\n")] = '\0';
+                OBJETO_LISTA *paciente = buscaLista(lista, nome);
+                if (paciente) {
+                    printf("\n--------------------------------------");
+                    printf("\nPaciente encontrado: %s", paciente->nome);
+                    printf("\nIdade do paciente: %d", retornaIdade(paciente->nascimento.dia, paciente->nascimento.mes, paciente->nascimento.ano));
+                    printf("\nDias da última consulta: %d", retornaDiasConsulta(paciente->ultimaConsulta.dia, paciente->ultimaConsulta.mes, paciente->ultimaConsulta.ano));
+                    printf("\n--------------------------------------\n");
+                } else {
+                    printf("\nPaciente não encontrado.\n");
+                }
+                break;
+
+            case 2:
+                printf("\n-----------------------------------\n");
+                printf("Menu de Cadastro:\n");
+                printf("Digite o nome do paciente: ");
+                fgets(clienteNovo.nome, 50, stdin);
+                clienteNovo.nome[strcspn(clienteNovo.nome, "\n")] = '\0';
+                clienteNovo.sexo = 'M';
+                
+                printf("\nDigite a data de nascimento (dd/mm/aaaa): ");
+                scanf(" %d/%d/%d", &clienteNovo.nascimento.dia, &clienteNovo.nascimento.mes, &clienteNovo.nascimento.ano);
+                getchar();
+                
+                printf("\nDigite a data da última consulta (dd/mm/aaaa): ");
+                scanf(" %d/%d/%d", &clienteNovo.ultimaConsulta.dia, &clienteNovo.ultimaConsulta.mes, &clienteNovo.ultimaConsulta.ano);
+                getchar();
+                
+                if (insereLista(lista, clienteNovo)) {
+                    printf("\nPaciente Cadastrado com Sucesso!\n");
+                } else {
+                    printf("\nErro ao cadastrar paciente.\n");
+                }
+                break;
+
+            case 3:
+                printf("\nDigite o nome completo do paciente para alteração: ");
+                fgets(nome, sizeof(nome), stdin);
+                nome[strcspn(nome, "\n")] = '\0';
+                alterarCadastroLista(lista, nome);
+                break;
+
+            case 4:
+                printf("\nSaindo do sistema...\n");
+                return;
+
+            default:
+                printf("\nOpção inválida! Escolha de 1 a 4.\n");
+                break;
+        }
+    } while (1);
+}
+
+void MenuInicial(NODE **no, LISTA_DUPLAMENTE *lista) {
+
     int choice = 0;
+
     printf("\n-----------------------------------------\n");
     printf("Menu inicial:");
     printf("\n-----------------------------------------\n");
@@ -392,7 +598,8 @@ void MenuInicial(NODE **no) {
                 choice = - 1;
                 break;
             case 2: 
-                // menuMoises();
+                menuMoises(lista);
+                choice = -1;
                 break;
             case 3:
                 choice = -1;
@@ -411,24 +618,26 @@ int main(int argc, char *argv[]) {
 
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
-    
-
 
     if(argc != 2) {
         printf("Erro. Uso: %s <arquivo.asm>\n", argv[0]);
         return EXIT_FAILURE;
     }
 
-    NODE *clientesFeminias;
+    NODE *clientesFemininas;
+    LISTA_DUPLAMENTE clientesMasculinos;
 
-    inicializaAVL(&clientesFeminias);
+    inicializaAVL(&clientesFemininas);
+    inicializaLista(&clientesMasculinos);
     
-    loadProgram(argv[1], &clientesFeminias);
+    loadProgram(argv[1], &clientesFemininas, &clientesMasculinos);
 
-    MenuInicial(&clientesFeminias);
+    MenuInicial(&clientesFemininas, &clientesMasculinos);
 
-    destruirAVL(&clientesFeminias);
+    geraSaida(&clientesFemininas, &clientesMasculinos);
 
+    destruirAVL(&clientesFemininas);
+    destruirLista(&clientesMasculinos);
 
     return EXIT_SUCCESS;
 }
