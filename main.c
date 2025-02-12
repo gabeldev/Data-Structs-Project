@@ -3,7 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
-#include <unistd.h>
+#include <ctype.h>
 
 typedef struct {
     int dia;
@@ -351,14 +351,20 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
     
     char linha[256];
     while (fgets(linha, sizeof(linha), file)) {
-        char *start = linha + 100;
-        char *end = strchr(start, '>');
-        if(end) *end = '\0';
+        // Remove os caracteres '<' e '>' e quaisquer outros caracteres especiais
+        char linha_limpa[256];
+        int j = 0;
+        for(int i = 0; linha[i] != '\0'; i++) {
+            if(linha[i] != '<' && linha[i] != '>' && isprint(linha[i])) {
+                linha_limpa[j++] = linha[i];
+            }
+        }
+        linha_limpa[j] = '\0';
 
         OBJETO_AVL cliente;
         OBJETO_LISTA clienteLista;
 
-        char *token = strtok(start, ",");
+        char *token = strtok(linha_limpa, ",");
         if(!token) continue;
         strcpy(cliente.nome, token);
 
@@ -396,24 +402,13 @@ void escreveAVL(NODE *no, FILE *file) {
 
 void escreveLista(LISTA_DUPLAMENTE *lista, FILE *file) {
     if (!file) return;
-
-    ftruncate(fileno(file), 0);
-    rewind(file);
     
     OBJETO_LISTA *atual = lista->inicio;
     while (atual) {
-        char buffer[256];
-        snprintf(buffer, sizeof(buffer), "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
+        fprintf(file, "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
                 atual->nome, atual->sexo,
                 atual->nascimento.dia, atual->nascimento.mes, atual->nascimento.ano,
                 atual->ultimaConsulta.dia, atual->ultimaConsulta.mes, atual->ultimaConsulta.ano);
-                
-        char *clean_buffer = buffer;
-        while (*clean_buffer && (unsigned char)*clean_buffer > 127) {
-            clean_buffer++;
-        }
-        
-        fputs(clean_buffer, file);
         atual = atual->prox;
     }
 }
