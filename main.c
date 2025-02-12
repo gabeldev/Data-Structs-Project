@@ -4,6 +4,7 @@
 #include <string.h>
 #include <time.h>
 #include <ctype.h>
+#include <locale.h>
 
 typedef struct {
     int dia;
@@ -630,6 +631,7 @@ void MenuInicial(NODE **no, LISTA_DUPLAMENTE *lista) {
 
 int main(int argc, char *argv[]) {
 
+    setlocale(LC_ALL, "Portuguese");
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
 
