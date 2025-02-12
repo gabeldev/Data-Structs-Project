@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 
 typedef struct {
     int dia;
@@ -286,16 +287,16 @@ bool insereLista(LISTA_DUPLAMENTE *lista, OBJETO_LISTA cliente) {
         lista->inicio = novo;
     } else {
         OBJETO_LISTA *atual = lista->inicio;
-        while (atual->prox && !isSmaller(novo->nome, atual->nome)) {
+        while (atual->prox && strcasecmp(novo->nome, atual->nome) < 0) {
             atual = atual->prox;
         }
 
-        if (isSmaller(novo->nome, atual->nome)) {  
+        if (strcasecmp(novo->nome, atual->nome) < 0) {
             novo->prox = atual->prox;
             novo->ant = atual;
             if (atual->prox) atual->prox->ant = novo;
             atual->prox = novo;
-        } else {  
+        } else {
             novo->prox = atual;
             novo->ant = atual->ant;
             if (atual->ant) atual->ant->prox = novo;
@@ -350,7 +351,7 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
     
     char linha[256];
     while (fgets(linha, sizeof(linha), file)) {
-        char *start = linha + 1;
+        char *start = linha + 100;
         char *end = strchr(start, '>');
         if(end) *end = '\0';
 
@@ -385,36 +386,54 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
 
 void escreveAVL(NODE *no, FILE *file) {
     if (!no) return;
-    escreveAVL(no->esq, file);
+    escreveAVL(no->dir, file);
     fprintf(file, "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
             no->info.nome, no->info.sexo,
             no->info.nascimento.dia, no->info.nascimento.mes, no->info.nascimento.ano,
             no->info.ultimaConsulta.dia, no->info.ultimaConsulta.mes, no->info.ultimaConsulta.ano);
-    escreveAVL(no->dir, file);
+    escreveAVL(no->esq, file);
 }
 
 void escreveLista(LISTA_DUPLAMENTE *lista, FILE *file) {
+    if (!file) return;
+
+    ftruncate(fileno(file), 0);
+    rewind(file);
+    
     OBJETO_LISTA *atual = lista->inicio;
     while (atual) {
-        fprintf(file, "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
                 atual->nome, atual->sexo,
                 atual->nascimento.dia, atual->nascimento.mes, atual->nascimento.ano,
                 atual->ultimaConsulta.dia, atual->ultimaConsulta.mes, atual->ultimaConsulta.ano);
+                
+        char *clean_buffer = buffer;
+        while (*clean_buffer && (unsigned char)*clean_buffer > 127) {
+            clean_buffer++;
+        }
+        
+        fputs(clean_buffer, file);
         atual = atual->prox;
     }
 }
 
 void geraSaida(NODE **no, LISTA_DUPLAMENTE *lista) {
-    FILE *fileLiz = fopen("saidaLiz.txt", "w");
-    FILE *fileMoises = fopen("saidaMoises.txt", "w");
+    FILE *fileLiz = fopen("saidaLiz.txt", "wb");
+    FILE *fileMoises = fopen("saidaMoises.txt", "wb");
     if (!fileLiz || !fileMoises) {
         perror("Erro ao criar arquivos de saída");
         if (fileLiz) fclose(fileLiz);
         if (fileMoises) fclose(fileMoises);
         return;
     }
+
+    fseek(fileLiz, 0, SEEK_SET);
+    fseek(fileMoises, 0, SEEK_SET);
+
     escreveAVL(*no, fileLiz);
     fclose(fileLiz);
+
     escreveLista(lista, fileMoises);
     fclose(fileMoises);
     printf("Arquivos gerados com sucesso!\n");
