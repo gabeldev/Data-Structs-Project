@@ -284,27 +284,25 @@ bool insereLista(LISTA_DUPLAMENTE *lista, OBJETO_LISTA cliente) {
     novo->prox = NULL;
     novo->ant = NULL;
 
-    if (!lista->inicio) {
+    if (!lista->inicio || strcasecmp(lista->inicio->nome, novo->nome) < 0) {
+        novo->prox = lista->inicio;
+        if (lista->inicio) {
+            lista->inicio->ant = novo;
+        }
         lista->inicio = novo;
     } else {
         OBJETO_LISTA *atual = lista->inicio;
-        while (atual->prox && strcasecmp(novo->nome, atual->nome) < 0) {
+        while (atual->prox != NULL && strcasecmp(atual->prox->nome, novo->nome) > 0) {
             atual = atual->prox;
         }
-
-        if (strcasecmp(novo->nome, atual->nome) < 0) {
-            novo->prox = atual->prox;
-            novo->ant = atual;
-            if (atual->prox) atual->prox->ant = novo;
-            atual->prox = novo;
-        } else {
-            novo->prox = atual;
-            novo->ant = atual->ant;
-            if (atual->ant) atual->ant->prox = novo;
-            else lista->inicio = novo;
-            atual->ant = novo;
+        novo->prox = atual->prox;
+        if (atual->prox) {
+            atual->prox->ant = novo;
         }
+        atual->prox = novo;
+        novo->ant = atual;
     }
+    
     lista->tamanho++;
     return true;
 }
@@ -350,6 +348,15 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
         return;
     }
     
+    //trata caracteres ocultos que estão em hexadecimal
+    unsigned char bom[3];
+    if (fread(bom, 1, 3, file) != 3 ||
+        bom[0] != 0xEF ||
+        bom[1] != 0xBB ||
+        bom[2] != 0xBF) {
+        fseek(file, 0, SEEK_SET);
+    }
+
     char linha[256];
     while (fgets(linha, sizeof(linha), file)) {
         // Remove os caracteres '<' e '>' e quaisquer outros caracteres especiais
@@ -415,8 +422,8 @@ void escreveLista(LISTA_DUPLAMENTE *lista, FILE *file) {
 }
 
 void geraSaida(NODE **no, LISTA_DUPLAMENTE *lista) {
-    FILE *fileLiz = fopen("saidaLiz.txt", "wb");
-    FILE *fileMoises = fopen("saidaMoises.txt", "wb");
+    FILE *fileLiz = fopen("saidaLiz.txt", "w");
+    FILE *fileMoises = fopen("saidaMoises.txt", "w");
     if (!fileLiz || !fileMoises) {
         perror("Erro ao criar arquivos de saída");
         if (fileLiz) fclose(fileLiz);
@@ -631,7 +638,7 @@ void MenuInicial(NODE **no, LISTA_DUPLAMENTE *lista) {
 
 int main(int argc, char *argv[]) {
 
-    setlocale(LC_ALL, "Portuguese");
+    setlocale(LC_CTYPE, "Portuguese");
     setvbuf(stdout, NULL, _IONBF, 0);
     setvbuf(stderr, NULL, _IONBF, 0);
 

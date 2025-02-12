@@ -1,4 +1,3 @@
-﻿Joaquim Marques, M, 18/11/1980, 02/03/2020
 Roberto Chives, M, 05/03/1990, 11/11/2021
 Ricardo Samuel, M, 10/10/1985, 13/10/2021
 Ricardo Pedro Joao, M, 10/10/1985, 13/10/2021
@@ -9,6 +8,7 @@ Marcos Gabriel Samuel, M, 10/12/1985, 13/02/2021
 Luiz Roberto Chaves, M, 25/02/2000, 10/09/2021
 Lucas Martins, M, 15/11/1989, 12/03/2021
 Jose Menezes, M, 18/10/1982, 02/03/2022
+Joaquim Marques, M, 18/11/1980, 02/03/2020
 Joaquim Lima, M, 18/01/1990, 29/01/2022
 Joao Lucas Martins, M, 15/11/1989, 12/03/2021
 Joao Leonel, M, 18/01/1990, 29/01/2022
