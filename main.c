@@ -3,21 +3,27 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
-#include <ctype.h>
-#include <locale.h>
+#include <unistd.h>
 
+
+/*-----------------------------------------
+               ESTRUTURAS DE DADOS
+------------------------------------------*/
+// Estrutura para datas de nascimento
 typedef struct {
     int dia;
     int mes;
     int ano;
 }NASCIMENTO;
 
+// Estrutura para datas de última consulta
 typedef struct {
     int dia;
     int mes;
     int ano;
 }ULTIMA_CONSULTA;
 
+// Estrutura base para armazenamento na AVL (Mulheres)
 typedef struct {
     char nome[50];
     char sexo;
@@ -25,6 +31,7 @@ typedef struct {
     ULTIMA_CONSULTA ultimaConsulta;
 }OBJETO_AVL;
 
+// Estrutura para lista duplamente encadeada (Homens)
 typedef struct objeto {
     char nome[50];
     char sexo;
@@ -34,6 +41,7 @@ typedef struct objeto {
     struct objeto *prox;
 }OBJETO_LISTA;
 
+// Nó da Árvore AVL
 typedef struct node {
     OBJETO_AVL info;
     int altura;
@@ -41,26 +49,20 @@ typedef struct node {
     struct node *dir;
 }NODE;
 
+// Lista Duplamente Encadeada
 typedef struct {
     OBJETO_LISTA *inicio;
     int tamanho;
 }LISTA_DUPLAMENTE;
+
+bool insereLista(LISTA_DUPLAMENTE *lista, OBJETO_LISTA clienteLista); // Tive que definir para usar no Alterar Cadastro AVL
 
 // Usa strcasecmp para saber qual nome vem antes, checando o ascii da letra (não considera case)
 bool isBigger(const char *__s1, const char *__s2) {
     return strcasecmp(__s1, __s2) < 0;
 }
 
-bool isSmaller(const char *__s1, const char *__s2) {
-    return strcasecmp(__s1, __s2) > 0;
-}
-
-char *strdup(const char *s) {
-    char *d = malloc(strlen(s) + 1);
-    if (d != NULL) strcpy(d, s);
-    return d;
-}
-
+// Função para retornar idade 
 int retornaIdade(const int dia, const int mes, const int ano) {
     time_t timeNow = time(NULL);
     
@@ -77,6 +79,7 @@ int retornaIdade(const int dia, const int mes, const int ano) {
     return idade; 
 }
 
+// Função retorno a quantos dias a consulta
 int retornaDiasConsulta(const int dia, const int mes, const int ano) {
     time_t timeNow = time(NULL);
     
@@ -102,6 +105,7 @@ bool estahVaziaAVL(NODE **raiz) {
     return (*raiz) == NULL;
 }
 
+// Max de altura
 int maxAlturaFilhos(NODE **no) {
     int hE;
     int hD;
@@ -111,6 +115,7 @@ int maxAlturaFilhos(NODE **no) {
     return hE > hD ? hE : hD;
 }
 
+// Calcula fator de balanceamento
 int calculaFB(NODE **no) {
     int hD, hE;
     hD = (*no)->dir != NULL ? (*no)->dir->altura : -1;
@@ -119,6 +124,7 @@ int calculaFB(NODE **no) {
     return (hD - hE);
 }
 
+// Faz rotação simples esquerda
 void rotacaoSimplesEsquerda(NODE **no) {
     NODE *aux = (*no)->dir;
     (*no)->dir = aux->esq;
@@ -129,6 +135,7 @@ void rotacaoSimplesEsquerda(NODE **no) {
     (*no)->altura = 1 + maxAlturaFilhos(no);
 }
 
+// Faz rotação simples direita
 void rotacaoSimplesDireita(NODE **no) {
     NODE *aux = (*no)->esq;
     (*no)->esq = aux->dir;
@@ -139,6 +146,7 @@ void rotacaoSimplesDireita(NODE **no) {
     (*no)->altura = 1 + maxAlturaFilhos(no);
 }
 
+// Insere elementos mantendo o balanceamento AVL
 bool insereAVL(NODE **no, OBJETO_AVL cliente) {
     if(estahVaziaAVL(no) == true){
         (*no)= (NODE*) malloc(sizeof(NODE));
@@ -149,7 +157,7 @@ bool insereAVL(NODE **no, OBJETO_AVL cliente) {
         }
 
         strcpy((*no)->info.nome, cliente.nome);
-        (*no)->info.sexo = cliente.sexo;
+        (*no)->info.sexo = 'F';
         (*no)->info.nascimento = cliente.nascimento;
         (*no)->info.ultimaConsulta = cliente.ultimaConsulta;
         (*no)->altura = 0;
@@ -232,22 +240,164 @@ void buscarElementoAVL(NODE **no, char *nome) {
     }
 }
 
-void alterarCadastroAVL(NODE **no, char *nome) {
+// Deleta elemento da árvore AVL
+void deletaElementoAVL(NODE **no, char *nome){
+    if(!strcmp((*no)->info.nome, nome)){
+        // Se é nó folha
+        if((*no)->esq == NULL && (*no)->dir == NULL){
+            free(*no);
+            (*no) = NULL;
+            return;
+        }
+
+        // Elemento com apenas um filho a esquerda
+        if((*no)->esq != NULL && (*no)->dir == NULL){
+            NODE *aux = (*no);
+            (*no)=(*no)->esq;
+            free(aux);
+            return;
+        }
+
+        // Elemento com apenas um filho a esquerda
+        if((*no)->esq == NULL && (*no)->dir != NULL){
+            NODE *aux=(*no);
+            (*no)=(*no)->dir;
+            free(aux);
+            return;
+        }
+
+        // Elemento a ser retirado possui 2 filhos
+        // Quem substitui? Maior elemento da subárvore da esquerda
+        if((*no)->esq != NULL && (*no)->dir != NULL){
+            NODE *subEsq = (*no)->esq;
+            while(subEsq->dir != NULL){
+                subEsq = subEsq->dir;
+            }
+            strcpy((*no)->info.nome, subEsq->info.nome);
+            deletaElementoAVL(&(*no)->esq, subEsq->info.nome); 
+            return;
+        }
+    }
+    else{
+        if(isBigger((*no)->info.nome, nome)) deletaElementoAVL(&(*no)->esq, nome);
+        else deletaElementoAVL(&(*no)->dir, nome);
+    }
+    //======================================
+    (*no)->altura = 1 + maxAlturaFilhos(no);
+    int fb = calculaFB(no);  //cálculo do fator de balanceamento do no
+
+    // Balanceamento
+    switch(fb){ 
+        case  2: //rotação à esquerda            
+            switch(calculaFB(&(*no)->dir)){ //consultar o fb do filho à direita
+                case  0:;
+                case  1: //rotação simples à esquerda
+                    rotacaoSimplesEsquerda(no);
+                    break;
+
+                case -1: //rotação dupla à esquerda
+                    rotacaoSimplesDireita(&(*no)->dir);
+                    rotacaoSimplesEsquerda(no);
+                    break;
+            }            
+            break;
+        case -2: //rotação à direita
+            switch(calculaFB(&(*no)->esq)){ //consultar o fb do filho à esquerda
+                case  0:;
+                case -1: //rotação simples à direita
+                    rotacaoSimplesDireita(no);
+                    break;
+
+                case  1: //rotação dupla à direita
+                    rotacaoSimplesEsquerda(&(*no)->esq);
+                    rotacaoSimplesDireita(no);
+                    break;
+            }
+            break;
+    }
+}
+
+// Alterar Cadastro das pacientes (Caso de digitação errada, ou mudança de sexo e/ou nome)
+void alterarCadastroAVL(NODE **no, LISTA_DUPLAMENTE *lista, char *nome) {
+    int aux;
+    char novoNome[50];
+    int diaN, mesN, anoN;
+    int diaC, mesC, anoC;
     if (estahVaziaAVL(no)) {
         printf("\nPaciente não encontrado: %s\n\n", nome);
         return;
     }
     if (!strcmp((*no)->info.nome, nome)) {
-        printf("\nAlterando cadastro para: %s\n", nome);
-        printf("Digite a nova data da última consulta (dd/mm/aaaa): ");
-        scanf("%d/%d/%d", &(*no)->info.ultimaConsulta.dia, &(*no)->info.ultimaConsulta.mes, &(*no)->info.ultimaConsulta.ano);
-        printf("\nCadastro atualizado com sucesso!\n");
+        
+        do {
+            printf("\nDigite o que gostaria de alterar\n");
+            printf("1 - Alterar nome\n");
+            printf("2 - Alterar sexo\n");
+            printf("3 - Alterar data de nascimento\n");
+            printf("4 - Alterar data da consulta\n");
+            printf("5 - Sair");
+            printf("\nOpção: ");
+            scanf("%d", &aux);
+            setbuf(stdin, NULL);
+            switch(aux) {
+                case 1:
+                    printf("\nDigite o novo nome: ");
+                    fgets(novoNome, 50, stdin);
+                    novoNome[strcspn(novoNome, "\n")] = '\0';
+                    strcpy((*no)->info.nome, novoNome);
+                    printf("\nAlterado com sucesso!");
+                    setbuf(stdin, NULL);
+                    break;
+                case 2: 
+                    OBJETO_LISTA clienteLista;
+                    clienteLista = *(OBJETO_LISTA*)&(*no)->info; // Copia os dados de OBJETO_AVL para OBJETO_LISTA
+
+                    insereLista(lista, clienteLista);
+                    deletaElementoAVL(no, nome);
+                    printf("\nAlterado com sucesso!");
+                    break;
+                case 3:
+                    printf("\nDigite a nova data de nascimento: ");
+                    scanf(" %d/%d/%d", &diaN, &mesN, &anoN);
+                    if(diaN > 31 || diaN < 1 ||
+                        mesN > 12 || mesN < 1 ||
+                        anoN > 2025 || anoN < 1900
+                    ) {
+                        printf("\nErro, data inválida.");
+                        break;
+                    }
+                    (*no)->info.nascimento.dia = diaN;
+                    (*no)->info.nascimento.mes = mesN;
+                    (*no)->info.nascimento.ano = anoN;
+                    printf("\nAlterado com sucesso!");
+                    break;
+                case 4:
+                    printf("\nDigite a nova data da consulta: ");
+                    scanf(" %d/%d/%d", &diaC, &mesC, &anoC);
+                    if(diaC > 31 || diaC < 1 ||
+                        mesC > 12 || mesC < 1 ||
+                        anoC > 2025 || anoC < 1900
+                    ) {
+                        printf("\nErro, data inválida.");
+                        break;
+                    }
+                    (*no)->info.ultimaConsulta.dia = diaC;
+                    (*no)->info.ultimaConsulta.mes = mesC;
+                    (*no)->info.ultimaConsulta.ano = anoC;
+                    printf("\nAlterado com sucesso!");
+                    break;
+                case 5:
+                    break;
+                default:
+                    break;
+            }
+        }while(aux != 5);
         return;
     }
     if (isBigger((*no)->info.nome, nome)) {
-        alterarCadastroAVL(&(*no)->esq, nome);
+        alterarCadastroAVL(&(*no)->esq, lista, nome);
     } else {
-        alterarCadastroAVL(&(*no)->dir, nome);
+        alterarCadastroAVL(&(*no)->dir, lista, nome);
     }
 }
 
@@ -260,14 +410,7 @@ void destruirAVL(NODE **no) {
     (*no) = NULL;
 }
 
-void posOrdem(NODE** no){
-    if(estahVaziaAVL(no)==true) return;
-    posOrdem(&(*no)->esq);
-    posOrdem(&(*no)->dir);
-    printf(" %s ", (*no)->info.nome);
-}
-
-// Operações de Lista Felipão
+// Operações de Lista
 void inicializaLista(LISTA_DUPLAMENTE *lista){
     lista->inicio = NULL;
     lista->tamanho = 0;
@@ -278,31 +421,33 @@ bool insereLista(LISTA_DUPLAMENTE *lista, OBJETO_LISTA cliente) {
     if (!novo) return false;
 
     strcpy(novo->nome, cliente.nome);
-    novo->sexo = cliente.sexo;
+    novo->sexo = 'M';
     novo->nascimento = cliente.nascimento;
     novo->ultimaConsulta = cliente.ultimaConsulta;
     novo->prox = NULL;
     novo->ant = NULL;
 
-    if (!lista->inicio || strcasecmp(lista->inicio->nome, novo->nome) < 0) {
-        novo->prox = lista->inicio;
-        if (lista->inicio) {
-            lista->inicio->ant = novo;
-        }
+    if (!lista->inicio) {
         lista->inicio = novo;
     } else {
         OBJETO_LISTA *atual = lista->inicio;
-        while (atual->prox != NULL && strcasecmp(atual->prox->nome, novo->nome) > 0) {
+        while (atual->prox && strcasecmp(novo->nome, atual->nome) < 0) {
             atual = atual->prox;
         }
-        novo->prox = atual->prox;
-        if (atual->prox) {
-            atual->prox->ant = novo;
+
+        if (strcasecmp(novo->nome, atual->nome) < 0) {
+            novo->prox = atual->prox;
+            novo->ant = atual;
+            if (atual->prox) atual->prox->ant = novo;
+            atual->prox = novo;
+        } else {
+            novo->prox = atual;
+            novo->ant = atual->ant;
+            if (atual->ant) atual->ant->prox = novo;
+            else lista->inicio = novo;
+            atual->ant = novo;
         }
-        atual->prox = novo;
-        novo->ant = atual;
     }
-    
     lista->tamanho++;
     return true;
 }
@@ -341,6 +486,7 @@ void destruirLista(LISTA_DUPLAMENTE *lista) {
     lista->tamanho = 0;
 }
 
+// Carrega lê o txt o programa todo nas estruturas
 void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) {
     FILE *file = fopen(filename, "r");
     if (!file) {
@@ -348,31 +494,16 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
         return;
     }
     
-    //trata caracteres ocultos que estão em hexadecimal
-    unsigned char bom[3];
-    if (fread(bom, 1, 3, file) != 3 ||
-        bom[0] != 0xEF ||
-        bom[1] != 0xBB ||
-        bom[2] != 0xBF) {
-        fseek(file, 0, SEEK_SET);
-    }
-
     char linha[256];
     while (fgets(linha, sizeof(linha), file)) {
-        // Remove os caracteres '<' e '>' e quaisquer outros caracteres especiais
-        char linha_limpa[256];
-        int j = 0;
-        for(int i = 0; linha[i] != '\0'; i++) {
-            if(linha[i] != '<' && linha[i] != '>' && isprint(linha[i])) {
-                linha_limpa[j++] = linha[i];
-            }
-        }
-        linha_limpa[j] = '\0';
+        char *start = linha + 1;
+        char *end = strchr(start, '>');
+        if(end) *end = '\0';
 
         OBJETO_AVL cliente;
         OBJETO_LISTA clienteLista;
 
-        char *token = strtok(linha_limpa, ",");
+        char *token = strtok(start, ",");
         if(!token) continue;
         strcpy(cliente.nome, token);
 
@@ -385,7 +516,7 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
         if(!(token = strtok(NULL, ","))) continue;
         sscanf(token + 1, "%d/%d/%d", &cliente.ultimaConsulta.dia, &cliente.ultimaConsulta.mes, &cliente.ultimaConsulta.ano);
 
-        bool valid = (int) cliente.sexo == 'F';
+        bool valid = (int) cliente.sexo == 'F'; // Booleano control fazendo casting do char
 
         if(valid) {
             insereAVL(raizAVL, cliente); // insere apenas mulheres
@@ -398,6 +529,7 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
     fclose(file);
 }
 
+// Escreve o arquivo de saida AVL
 void escreveAVL(NODE *no, FILE *file) {
     if (!no) return;
     escreveAVL(no->dir, file);
@@ -408,19 +540,32 @@ void escreveAVL(NODE *no, FILE *file) {
     escreveAVL(no->esq, file);
 }
 
+// Escreve o arquivo de saida Lista
 void escreveLista(LISTA_DUPLAMENTE *lista, FILE *file) {
     if (!file) return;
+
+    ftruncate(fileno(file), 0);
+    rewind(file);
     
     OBJETO_LISTA *atual = lista->inicio;
     while (atual) {
-        fprintf(file, "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
+        char buffer[256];
+        snprintf(buffer, sizeof(buffer), "%s, %c, %02d/%02d/%04d, %02d/%02d/%04d\n",
                 atual->nome, atual->sexo,
                 atual->nascimento.dia, atual->nascimento.mes, atual->nascimento.ano,
                 atual->ultimaConsulta.dia, atual->ultimaConsulta.mes, atual->ultimaConsulta.ano);
+                
+        char *clean_buffer = buffer;
+        while (*clean_buffer && (unsigned char)*clean_buffer > 127) {
+            clean_buffer++;
+        }
+        
+        fputs(clean_buffer, file);
         atual = atual->prox;
     }
 }
 
+// Gera a saida dos arquivos
 void geraSaida(NODE **no, LISTA_DUPLAMENTE *lista) {
     FILE *fileLiz = fopen("saidaLiz.txt", "w");
     FILE *fileMoises = fopen("saidaMoises.txt", "w");
@@ -442,8 +587,8 @@ void geraSaida(NODE **no, LISTA_DUPLAMENTE *lista) {
     printf("Arquivos gerados com sucesso!\n");
 }
 
-void menuLiz(NODE **no) {
-
+// Menu da Liz
+void menuLiz(NODE **no, LISTA_DUPLAMENTE *lista) {
     int choice;
     char nome[50];
     OBJETO_AVL clienteNova;
@@ -507,7 +652,8 @@ void menuLiz(NODE **no) {
                 printf("\nDigite o nome completo da paciente para alteração: ");
                 fgets(nome, sizeof(nome), stdin);
                 nome[strcspn(nome, "\n")] = '\0';
-                alterarCadastroAVL(no, nome);
+                setbuf(stdin, NULL);
+                alterarCadastroAVL(no, lista, nome);
                 break;
 
             case 4:
@@ -521,6 +667,7 @@ void menuLiz(NODE **no) {
     } while (1); 
 }
 
+// Menu do Moises
 void menuMoises(LISTA_DUPLAMENTE *lista) {
 
     int choice;
@@ -598,6 +745,7 @@ void menuMoises(LISTA_DUPLAMENTE *lista) {
     } while (1);
 }
 
+// Menu Inicial
 void MenuInicial(NODE **no, LISTA_DUPLAMENTE *lista) {
 
     int choice = 0;
@@ -616,7 +764,7 @@ void MenuInicial(NODE **no, LISTA_DUPLAMENTE *lista) {
     while(choice != -1) {
         switch(choice) {
             case 1: 
-                menuLiz(no);
+                menuLiz(no, lista);
                 choice = - 1;
                 break;
             case 2: 
@@ -636,11 +784,8 @@ void MenuInicial(NODE **no, LISTA_DUPLAMENTE *lista) {
     }
 }
 
+// Main
 int main(int argc, char *argv[]) {
-
-    setlocale(LC_CTYPE, "Portuguese");
-    setvbuf(stdout, NULL, _IONBF, 0);
-    setvbuf(stderr, NULL, _IONBF, 0);
 
     if(argc != 2) {
         printf("Erro. Uso: %s <arquivo.asm>\n", argv[0]);

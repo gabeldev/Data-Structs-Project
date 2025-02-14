@@ -10,8 +10,11 @@
 *.pdb
 
 # --- Executável do projeto (substitua 'myprogram' pelo nome do seu executável) ---
-/myprogram
-/myprogram.exe
+/main
+/main.exe
+
+/saidaMoises.txt
+/saidaLiz.txt
 
 # --- Diretórios de build ---
 /build/
