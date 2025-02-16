@@ -319,6 +319,7 @@ void deletaElementoAVL(NODE **no, char *nome){
 
 // Alterar Cadastro das pacientes (Caso de digitação errada, ou mudança de sexo e/ou nome)
 void alterarCadastroAVL(NODE **no, LISTA_DUPLAMENTE *lista, char *nome) {
+    OBJETO_LISTA clienteLista;
     int aux;
     char novoNome[50];
     int diaN, mesN, anoN;
@@ -349,7 +350,6 @@ void alterarCadastroAVL(NODE **no, LISTA_DUPLAMENTE *lista, char *nome) {
                     setbuf(stdin, NULL);
                     break;
                 case 2: 
-                    OBJETO_LISTA clienteLista;
                     clienteLista = *(OBJETO_LISTA*)&(*no)->info; // Copia os dados de OBJETO_AVL para OBJETO_LISTA
 
                     insereLista(lista, clienteLista);
@@ -463,13 +463,106 @@ OBJETO_LISTA* buscaLista(LISTA_DUPLAMENTE *lista, char *nome) {
     return NULL;
 }
 
-void alterarCadastroLista(LISTA_DUPLAMENTE *lista, char *nome) {
+void removerDaLista(LISTA_DUPLAMENTE *lista, char *nome) {
+    OBJETO_LISTA *atual = buscaLista(lista, nome);
+    
+    if (atual) {
+        // Ajusta os ponteiros da lista
+        if (atual->ant) {
+            atual->ant->prox = atual->prox;
+        } else {
+            lista->inicio = atual->prox;
+        }
+        
+        if (atual->prox) {
+            atual->prox->ant = atual->ant;
+        }
+        
+        free(atual);
+        lista->tamanho--;
+    }
+}
+
+void alterarCadastroLista(LISTA_DUPLAMENTE *lista, NODE **raizAVL, char *nome) {
     OBJETO_LISTA *atual = buscaLista(lista, nome);
     if (atual) {
-        printf("\nAlterando cadastro para: %s\n", nome);
-        printf("Digite a nova data da última consulta (dd/mm/aaaa): ");
-        scanf("%d/%d/%d", &atual->ultimaConsulta.dia, &atual->ultimaConsulta.mes, &atual->ultimaConsulta.ano);
-        printf("\nCadastro atualizado com sucesso!\n");
+        int aux;
+        char novoNome[50];
+        int diaN, mesN, anoN;
+        int diaC, mesC, anoC;
+        
+        do {
+            printf("\nDigite o que gostaria de alterar\n");
+            printf("1 - Alterar nome\n");
+            printf("2 - Alterar sexo\n");
+            printf("3 - Alterar data de nascimento\n");
+            printf("4 - Alterar data da consulta\n");
+            printf("5 - Sair");
+            printf("\nOpção: ");
+            scanf("%d", &aux);
+            setbuf(stdin, NULL);
+            
+            switch(aux) {
+                case 1:
+                    printf("\nDigite o novo nome: ");
+                    fgets(novoNome, 50, stdin);
+                    novoNome[strcspn(novoNome, "\n")] = '\0';
+                    strcpy(atual->nome, novoNome);
+                    printf("\nAlterado com sucesso!");
+                    setbuf(stdin, NULL);
+                    break;
+                    
+                case 2: {
+                    OBJETO_AVL clienteAVL;
+                    clienteAVL = *(OBJETO_AVL*)atual; // Copia os dados de OBJETO_LISTA para OBJETO_AVL
+                    clienteAVL.sexo = 'F';
+                    
+                    insereAVL(raizAVL, clienteAVL);
+                    removerDaLista(lista, nome);
+                    printf("\nAlterado com sucesso!");
+                    return;
+                }
+                    
+                case 3:
+                    printf("\nDigite a nova data de nascimento: ");
+                    scanf(" %d/%d/%d", &diaN, &mesN, &anoN);
+                    if(diaN > 31 || diaN < 1 ||
+                       mesN > 12 || mesN < 1 ||
+                       anoN > 2025 || anoN < 1900
+                    ) {
+                        printf("\nErro, data inválida.");
+                        break;
+                    }
+                    atual->nascimento.dia = diaN;
+                    atual->nascimento.mes = mesN;
+                    atual->nascimento.ano = anoN;
+                    printf("\nAlterado com sucesso!");
+                    break;
+                    
+                case 4:
+                    printf("\nDigite a nova data da consulta: ");
+                    scanf(" %d/%d/%d", &diaC, &mesC, &anoC);
+                    if(diaC > 31 || diaC < 1 ||
+                       mesC > 12 || mesC < 1 ||
+                       anoC > 2025 || anoC < 1900
+                    ) {
+                        printf("\nErro, data inválida.");
+                        break;
+                    }
+                    atual->ultimaConsulta.dia = diaC;
+                    atual->ultimaConsulta.mes = mesC;
+                    atual->ultimaConsulta.ano = anoC;
+                    printf("\nAlterado com sucesso!");
+                    break;
+                    
+                case 5:
+                    break;
+                    
+                default:
+                    printf("\nOpção inválida!");
+                    break;
+            }
+        } while(aux != 5);
     } else {
         printf("\nPaciente não encontrado.\n");
     }
@@ -668,7 +761,7 @@ void menuLiz(NODE **no, LISTA_DUPLAMENTE *lista) {
 }
 
 // Menu do Moises
-void menuMoises(LISTA_DUPLAMENTE *lista) {
+void menuMoises(LISTA_DUPLAMENTE *lista, NODE **no) {
 
     int choice;
     char nome[50];
@@ -731,7 +824,7 @@ void menuMoises(LISTA_DUPLAMENTE *lista) {
                 printf("\nDigite o nome completo do paciente para alteração: ");
                 fgets(nome, sizeof(nome), stdin);
                 nome[strcspn(nome, "\n")] = '\0';
-                alterarCadastroLista(lista, nome);
+                alterarCadastroLista(lista, no, nome);
                 break;
 
             case 4:
@@ -768,7 +861,7 @@ void MenuInicial(NODE **no, LISTA_DUPLAMENTE *lista) {
                 choice = - 1;
                 break;
             case 2: 
-                menuMoises(lista);
+                menuMoises(lista, no);
                 choice = -1;
                 break;
             case 3:
