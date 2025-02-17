@@ -345,17 +345,24 @@ void alterarCadastroAVL(NODE **no, LISTA_DUPLAMENTE *lista, char *nome) {
                     printf("\nDigite o novo nome: ");
                     fgets(novoNome, 50, stdin);
                     novoNome[strcspn(novoNome, "\n")] = '\0';
-                    strcpy((*no)->info.nome, novoNome);
+
+                    OBJETO_AVL clienteAlterado = (*no)->info;
+
+                    deletaElementoAVL(no, nome);
+
+                    strcpy(clienteAlterado.nome, novoNome);
+
+                    insereAVL(no, clienteAlterado);
                     printf("\nAlterado com sucesso!");
                     setbuf(stdin, NULL);
-                    break;
+                    return;
                 case 2: 
                     clienteLista = *(OBJETO_LISTA*)&(*no)->info; // Copia os dados de OBJETO_AVL para OBJETO_LISTA
 
                     insereLista(lista, clienteLista);
                     deletaElementoAVL(no, nome);
                     printf("\nAlterado com sucesso!");
-                    break;
+                    return;
                 case 3:
                     printf("\nDigite a nova data de nascimento: ");
                     scanf(" %d/%d/%d", &diaN, &mesN, &anoN);
@@ -370,7 +377,7 @@ void alterarCadastroAVL(NODE **no, LISTA_DUPLAMENTE *lista, char *nome) {
                     (*no)->info.nascimento.mes = mesN;
                     (*no)->info.nascimento.ano = anoN;
                     printf("\nAlterado com sucesso!");
-                    break;
+                    return;
                 case 4:
                     printf("\nDigite a nova data da consulta: ");
                     scanf(" %d/%d/%d", &diaC, &mesC, &anoC);
@@ -385,7 +392,7 @@ void alterarCadastroAVL(NODE **no, LISTA_DUPLAMENTE *lista, char *nome) {
                     (*no)->info.ultimaConsulta.mes = mesC;
                     (*no)->info.ultimaConsulta.ano = anoC;
                     printf("\nAlterado com sucesso!");
-                    break;
+                    return;
                 case 5:
                     break;
                 default:
@@ -510,7 +517,7 @@ void alterarCadastroLista(LISTA_DUPLAMENTE *lista, NODE **raizAVL, char *nome) {
                     strcpy(atual->nome, novoNome);
                     printf("\nAlterado com sucesso!");
                     setbuf(stdin, NULL);
-                    break;
+                    return;
                     
                 case 2: {
                     OBJETO_AVL clienteAVL;
@@ -537,7 +544,7 @@ void alterarCadastroLista(LISTA_DUPLAMENTE *lista, NODE **raizAVL, char *nome) {
                     atual->nascimento.mes = mesN;
                     atual->nascimento.ano = anoN;
                     printf("\nAlterado com sucesso!");
-                    break;
+                    return;
                     
                 case 4:
                     printf("\nDigite a nova data da consulta: ");
@@ -553,7 +560,7 @@ void alterarCadastroLista(LISTA_DUPLAMENTE *lista, NODE **raizAVL, char *nome) {
                     atual->ultimaConsulta.mes = mesC;
                     atual->ultimaConsulta.ano = anoC;
                     printf("\nAlterado com sucesso!");
-                    break;
+                    return;
                     
                 case 5:
                     break;
