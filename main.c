@@ -591,7 +591,7 @@ void loadProgram(const char *filename, NODE **raizAVL, LISTA_DUPLAMENTE *lista) 
     FILE *file = fopen(filename, "r");
     if (!file) {
         printf("Erro ao abrir o arquivo: %s\n", filename);
-        return;
+        exit(EXIT_FAILURE);
     }
     
     char linha[256];
